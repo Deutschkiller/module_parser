@@ -52,6 +52,7 @@ class Module():
         print("module name:" + self.name)
         self.show_interfaces()
         print("-----------------")
+        
 class Interface():
     def __init__(self,if_type,name) -> None:
         self.width = 1
