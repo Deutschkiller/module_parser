@@ -1,10 +1,13 @@
+from importlib.util import module_for_loader
+from pkgutil import iter_modules
 import re
 import os
+from ssl import VerifyFlags
 class Instance():
     def __init__(self,module,name) -> None:
         self.name = name
         self.module = module
-        self.child = None
+        self.child = []
         self.father = None
 
     def set_instance(self,module):
@@ -18,7 +21,7 @@ class Instance():
 
     def set_child(self,child):
         if type(child) == type(self):
-            self.child = child
+            self.child.append(child)
         else:
             print("invalid instance child type")
 
@@ -27,6 +30,8 @@ class Instance():
             self.father = father
         else:
             print("invalid instance father type")
+
+
 
 class Module():
     def __init__(self,name) -> None:
@@ -61,7 +66,7 @@ class Module():
         print("Instances contains:")
         for e in self.instances:
             e.print_instance()
-
+        print("Instances printed")
 
     def print_info(self):
         print("-----------------")
@@ -142,33 +147,108 @@ class Verilog_file():
             if re.search("\.\w+\(\w*\)",block) is not None: #find.();
                 self.instance_block_list.append(block)
         for code in self.instance_block_list:  
+            code = code.split("end")[-1].split("generate")[-1].split("endtask")[-1].split("else")[-1].split('begin')[-1]
             buffer_string = re.sub(re.compile("\..+?\(.*?\)",re.DOTALL),"",code)# 删除端口连接的字符串
-
+            # print(buffer_string)
             module_name = re.findall("\w+",buffer_string)[0]
             instance_name = re.findall("\w+",buffer_string)[-1]
             self.module.instances.append(Instance(Module(module_name),instance_name))
+            self.module.instances = list(set(self.module.instances))
 
-    
+def parsing_test_verilog():
+
+    module_lists = []
+
+    filelist = os.listdir("./test_verilogs")
+    for file in filelist:
+        test_verilog = Verilog_file("./test_verilogs/"+file,"1995")
+        print("parsing---./test_verilogs/"+file)
+        # test_verilog.module.print_info()
+        module_lists.append(test_verilog.module)
+
+    for module in module_lists:
+        print(module.name)
+        print(module.show_instances())
 
 
-# test_verilog.module.print_info()
+class Design():
 
-# test_verilog.detect_instance()
+    def __init__(self,directory) -> None:
+        self.directory = directory
+        filelist = os.listdir(self.directory)
+        self.module_list=[]
+        for file in filelist:
+            test_verilog = Verilog_file("./test_verilogs/"+file,"1995")
+            self.module_list.append(test_verilog.module)
+        self.parse_modules()
 
-# i = 0
-# for e in test_verilog.text_content_list:
-#     i+=1
-#     print(str(i)+":---------------------------")
-#     print(e)
-# test_verilog = Verilog_file("./test_verilogs/arp.v","1995")
-module_lists = []
+    def parse_modules(self):
+        for module in self.module_list:
+            for i in range(0,len(module.instances)):
+                for compare_module in self.module_list:
+                    if compare_module.name == module.instances[i].module.name:
+                        for child_instance in compare_module.instances:
+                            module.instances[i].child.append(child_instance)
+                            print(module.name)
+                            print(module.instances[i].name)
+                            print(child_instance.name) 
+                            print(module.instances[i].child)
 
-filelist = os.listdir("./test_verilogs")
-for file in filelist:
-    test_verilog = Verilog_file("./test_verilogs/"+file,"1995")
-    print("./test_verilogs/"+file)
-    test_verilog.module.print_info()
-    module_lists.append(test_verilog.module)
+    def cal_depth(self,module):
+        depth = 0
+        while(True):
+            if module.instances != []:
+                
+                module = module.instances[0].module
+                depth += 1
+            else:
+                break
+        return depth
 
-# for module in module_lists:
-#     print(module.print_info())
+
+            
+
+
+    def findout_top_instance(self):
+        top_instance = self.module_list[0]
+        current_depth = 0
+        max_depth = 0
+        for module in self.module_list:
+            current_depth = self.cal_depth(module)
+            print(module.name)
+            print(self.cal_depth(module))
+            if current_depth > max_depth:
+                top_instance = module
+                max_depth = current_depth
+        return top_instance
+
+design = Design("./test_verilogs")
+# print(design.findout_top_instance().name)
+print(design.module_list[0].instances[0].child)
+
+# for i in range(0,len(design.module_list)):
+#     print(i)
+#     print(design.iter_depth())
+
+iter_d = 0
+
+def iter_depth(module):
+    global iter_d 
+    iter_d += 1
+    if(module.instances != []):
+        for instance in module.instances:
+            if instance.child != []:
+                for child in instance.child:
+                    print(iter_d*" "+child.name)
+                    iter_depth(child.module)
+
+# module = design.module_list[0]
+# iter_depth(module)
+
+for e in design.module_list:
+    print("--------------")
+    print(e.name)
+    iter_depth(e)
+    print(iter_d)
+    print("--------------")
+    iter_d = 0
