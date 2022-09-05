@@ -31,8 +31,11 @@ class Instance():
         else:
             print("invalid instance father type")
 
+    def show_child(self):
+        for i in range(0,self.child):
+            print(str(i) + self.child[i].name)
 
-
+            
 class Module():
     def __init__(self,name) -> None:
         self.name = name
@@ -182,17 +185,31 @@ class Design():
             self.module_list.append(test_verilog.module)
         self.parse_modules()
 
+    # def parse_modules_legacy(self):
+    #     for module in self.module_list:
+    #         for i in range(0, len(module.instances)):
+    #             for compare_module in self.module_list:
+    #                 if compare_module.name == module.instances[i].module.name:
+    #                     for child_instance in compare_module.instances:
+    #                         module.instances[i].child.append(child_instance)
+    #                         print(module.name)
+    #                         print(module.instances[i].name)
+    #                         print(child_instance.name)
+    #                         print(module.instances[i].child)
+
     def parse_modules(self):
-        for module in self.module_list:
-            for i in range(0,len(module.instances)):
-                for compare_module in self.module_list:
-                    if compare_module.name == module.instances[i].module.name:
-                        for child_instance in compare_module.instances:
-                            module.instances[i].child.append(child_instance)
-                            print(module.name)
-                            print(module.instances[i].name)
-                            print(child_instance.name) 
-                            print(module.instances[i].child)
+        for i_module in range(len(self.module_list)):
+            for i_instance in range(0,len(self.module_list[i_module].instances)):
+                for i_compare in range(len(self.module_list)):
+                    if self.module_list[i_compare].name == self.module_list[i_module].instances[i_instance].module.name:
+                        for i_child_instance in range(len(self.module_list[i_compare].instances)):
+                            child_instance = self.module_list[i_compare].instances[i_child_instance]
+                            parent_instance = self.module_list[i_module].instances[i_instance]
+                            parent_instance.child.append(child_instance)
+                            # self.module_list[i_module].instances[i_instance].child.append(
+                            #     self.module_list[i_compare].instances[i_child_instance])
+
+
 
     def cal_depth(self,module):
         depth = 0
@@ -204,10 +221,6 @@ class Design():
             else:
                 break
         return depth
-
-
-            
-
 
     def findout_top_instance(self):
         top_instance = self.module_list[0]
@@ -223,32 +236,6 @@ class Design():
         return top_instance
 
 design = Design("./test_verilogs")
-# print(design.findout_top_instance().name)
+
 print(design.module_list[0].instances[0].child)
 
-# for i in range(0,len(design.module_list)):
-#     print(i)
-#     print(design.iter_depth())
-
-iter_d = 0
-
-def iter_depth(module):
-    global iter_d 
-    iter_d += 1
-    if(module.instances != []):
-        for instance in module.instances:
-            if instance.child != []:
-                for child in instance.child:
-                    print(iter_d*" "+child.name)
-                    iter_depth(child.module)
-
-# module = design.module_list[0]
-# iter_depth(module)
-
-for e in design.module_list:
-    print("--------------")
-    print(e.name)
-    iter_depth(e)
-    print(iter_d)
-    print("--------------")
-    iter_d = 0
